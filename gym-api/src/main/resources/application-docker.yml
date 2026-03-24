@@ -1,0 +1,45 @@
+#gym-api/src/main/resources/application-docker.yml
+
+server:
+  port: 8080
+
+spring:
+  application:
+    name: gym-api
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  servlet:
+    multipart:
+      max-file-size: 15MB
+      max-request-size: 15MB
+  profiles:
+    group:
+      docker: docker
+
+app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:*}
+
+security:
+  jwt:
+    secret: ${SECURITY_JWT_SECRET}
+    expiration-seconds: ${SECURITY_JWT_EXPIRATION_SECONDS:3600}
+
+checkin:
+  callback-secret: ${CHECKIN_CALLBACK_SECRET}
+
+storage:
+  local:
+    base-path: ${STORAGE_LOCAL_BASE_PATH:/data/storage}

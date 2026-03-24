@@ -1,0 +1,123 @@
+spring:
+  application:
+    name: gym-system
+  datasource:
+    url: jdbc:postgresql://localhost:5432/gymsystem
+    username: gymsystem
+    password: gymsystem
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate.format_sql: true
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  mail:
+    # Preenchido apenas quando notifications.email.provider=smtp
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+
+server:
+  port: 8080
+
+# ─── Security ────────────────────────────────────────────────
+security:
+  jwt:
+    secret: ${JWT_SECRET:change-me-in-production-min-32-chars!!}
+    expiration-seconds: 86400   # 24h
+
+# ─── CORS ────────────────────────────────────────────────────
+cors:
+  allowed-origins: ${CORS_ORIGINS:http://localhost:4200}
+
+# ─── Payments ────────────────────────────────────────────────
+# Troque "mock" por "mercadopago", "pagarme" ou "stripe" quando pronto
+payments:
+  gateway: ${PAYMENT_GATEWAY:mock}
+
+  # Mercado Pago (ativo quando payments.gateway=mercadopago)
+  mercadopago:
+    access-token: ${MP_ACCESS_TOKEN:}
+    webhook-secret: ${MP_WEBHOOK_SECRET:}
+
+  # Pagar.me v5 (ativo quando payments.gateway=pagarme)
+  pagarme:
+    secret-key: ${PAGARME_SECRET_KEY:}
+    webhook-secret: ${PAGARME_WEBHOOK_SECRET:}
+
+  # Stripe (ativo quando payments.gateway=stripe)
+  stripe:
+    secret-key: ${STRIPE_SECRET_KEY:}
+    webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+
+  past-due:
+    cancel-future-bookings: true
+    grace-hours: 0
+
+  max-attempts: 3
+  retry-backoff-minutes: 60
+
+  scheduler:
+    cron: "0 * * * * *"   # a cada minuto
+
+# ─── Notificações ────────────────────────────────────────────
+# Opções: console (dev) | smtp | sendgrid
+notifications:
+  email:
+    provider: ${EMAIL_PROVIDER:console}
+    from: ${EMAIL_FROM:noreply@gymsystem.com.br}
+    from-name: ${EMAIL_FROM_NAME:GymSystem}
+
+  # SendGrid (ativo quando notifications.email.provider=sendgrid)
+  sendgrid:
+    api-key: ${SENDGRID_API_KEY:}
+
+# ─── Check-in ────────────────────────────────────────────────
+checkin:
+  callback-secret: ${CHECKIN_SECRET:change-me}
+
+# ─── Rate Limit ──────────────────────────────────────────────
+ratelimit:
+  bookings:
+    book-min-interval-ms: 800
+    cancel-min-interval-ms: 800
+
+# ─── Waitlist ────────────────────────────────────────────────
+waitlist:
+  expiry-check-ms: 300000   # verifica expiração a cada 5 minutos
+
+# ─── App ─────────────────────────────────────────────────────
+app:
+  base-url: ${APP_BASE_URL:http://localhost:8080}
+
+# ─── Async ───────────────────────────────────────────────────
+spring.task.execution:
+  pool:
+    core-size: 4
+    max-size: 16
+    queue-capacity: 100
+  thread-name-prefix: gymsystem-async-
+
+# ─── Actuator ────────────────────────────────────────────────
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+logging:
+  level:
+    org.springframework.security: TRACE
+    org.springdoc: DEBUG
+    org.springframework.web: DEBUG

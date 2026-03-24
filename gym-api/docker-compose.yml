@@ -1,0 +1,42 @@
+# gym-api/docker-compose.yml
+
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: gymdb
+      POSTGRES_USER: gym
+      POSTGRES_PASSWORD: gym
+    ports:
+      - "5432:5432"   # expose for local tools (psql/IDE)
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  api:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      # Map datasource to internal service name "db"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/gymdb
+      SPRING_DATASOURCE_USERNAME: gym
+      SPRING_DATASOURCE_PASSWORD: gym
+      # Security/feature flags (replace in prod)
+      SECURITY_JWT_SECRET: change-me-please-change-me-please-change-me
+      SECURITY_JWT_EXPIRATION_SECONDS: "3600"
+      CHECKIN_CALLBACK_SECRET: change-me-please
+      CORS_ALLOWED_ORIGINS: http://localhost:4200,http://localhost:5173
+      STORAGE_LOCAL_BASE_PATH: /data/storage
+    ports:
+      - "8080:8080"
+    volumes:
+      - storage:/data/storage
+
+volumes:
+  pgdata:
+  storage:

@@ -1,0 +1,34 @@
+# Node / Angular
+node_modules/
+dist/
+.angular/
+coverage/
+
+# Java / Maven
+target/
+*.class
+*.jar
+*.war
+
+# IDE / editor
+.idea/
+.vscode/
+*.iml
+.claude/
+
+# Logs
+*.log
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Zip / temp
+*.zip
+tmp/
+temp/
