@@ -1,121 +1,147 @@
-# 🏋️‍♂️ GymSystem API
+# Gym System
 
-Sistema de gestão de academias desenvolvido em **Java com Spring Boot**, com arquitetura modular e endpoints REST.  
-Atualmente o projeto contempla apenas o **backend**, mas em breve será desenvolvido o **frontend** em Angular.
+<p align="center">
+  <b>Sistema de gestão para academias</b><br>
+  Backend em <b>Spring Boot</b> e frontend em <b>Angular</b>
+</p>
 
----
+<p align="center">
+  <img alt="Java" src="https://img.shields.io/badge/Java-17+-informational">
+  <img alt="Spring Boot" src="https://img.shields.io/badge/Spring_Boot-Backend-success">
+  <img alt="Angular" src="https://img.shields.io/badge/Angular-Frontend-red">
+  <img alt="PostgreSQL" src="https://img.shields.io/badge/PostgreSQL-Database-blue">
+  <img alt="JWT" src="https://img.shields.io/badge/Auth-JWT-orange">
+</p>
 
-## 🚀 Visão Geral
+## Sobre o projeto
 
-O **GymSystem** é uma API voltada para academias que desejam automatizar cadastros, planos, check-ins e controle financeiro.  
-Foi estruturado para permitir expansão futura (como portal do aluno, dashboards e relatórios), seguindo princípios de **Clean Architecture** e **boas práticas REST**.
+O **Gym System** é uma aplicação full stack voltada para a administração de academias.  
+O projeto foi desenvolvido com foco em organização, autenticação, controle de usuários e rotinas comuns do ambiente de academia, como planos, pagamentos, check-ins e agendamentos.
 
----
+Além do uso prático, o sistema também foi construído como projeto de estudo e portfólio, aplicando conceitos reais de arquitetura backend, integração com frontend e boas práticas de desenvolvimento.
 
-## 🏗️ Tecnologias Utilizadas
+## Funcionalidades
 
-| Categoria | Tecnologias |
-|------------|--------------|
-| **Linguagem** | Java 17 |
-| **Framework** | Spring Boot 3 (Web, Security, Data JPA, Validation) |
-| **Banco de Dados** | PostgreSQL |
-| **ORM** | Hibernate / JPA |
-| **Documentação da API** | Springdoc OpenAPI / Swagger UI |
-| **Testes** | JUnit 5, Mockito |
-| **Build e Dependências** | Maven |
-| **Containerização (futuro)** | Docker e Docker Compose |
+- Cadastro e login de usuários
+- Autenticação com JWT
+- Controle de perfis e permissões
+- Gerenciamento de membros
+- Gerenciamento de planos
+- Controle de pagamentos
+- Check-in de alunos
+- Agendamentos
+- Estrutura preparada para multi-tenant
 
----
+## Tecnologias utilizadas
 
-## 📘 Documentação da API
+### Backend
+- Java
+- Spring Boot
+- Spring Security
+- JWT
+- JPA / Hibernate
+- Flyway
+- Maven
 
-A documentação é gerada automaticamente pelo **Springdoc OpenAPI**.  
-Após iniciar o projeto, acesse:
+### Frontend
+- Angular
+- TypeScript
+- SCSS
+- Angular Router
+- HttpClient
 
-🔗 **http://localhost:8080/swagger-ui.html**
+### Banco de dados
+- PostgreSQL
 
-Lá você encontrará todos os endpoints, parâmetros, modelos de requisição e exemplos de resposta.
+## Estrutura do projeto
 
----
-
-## 🧪 Testes
-
-Para executar os testes:
 ```bash
-mvn test
+gym-system/
+├── gym-api/       # Backend Spring Boot
+└── gym-angular/   # Frontend Angular
 ```
 
-Os testes unitários e de integração estão em `src/test/java/`, cobrindo:
-- Controllers
-- Services
-- Repositories
-- Fluxos de autenticação e validação
+## Como executar o projeto
 
----
+### Pré-requisitos
 
-## 🧱 Próximos Passos
+- Java 17+
+- Maven
+- Node.js
+- Angular CLI
+- PostgreSQL
 
-- [ ] Início do **frontend** em **Angular 17+**
-- [ ] Implementação de **autenticação JWT**
-- [ ] Upload de arquivos (exames, contratos, fotos)
-- [ ] Integração com **gateways de pagamento**
-- [ ] **Dockerização** completa (backend + banco)
-- [ ] Deploy em **AWS / Render / Railway**
+## Backend
 
----
+Entre na pasta do backend:
 
-## 🧠 Arquitetura e Boas Práticas
-
-- **Arquitetura em camadas:** Controller → Service → Repository  
-- **DTOs** para comunicação entre camadas e isolamento de entidades JPA  
-- **Tratamento global de erros** com `@ControllerAdvice`  
-- **Validação de campos** com `@Valid` e `javax.validation`  
-- **Mapeamento JPA** com anotações (`@Entity`, `@OneToMany`, `@JoinColumn`)  
-- **Versionamento de API** planejado para `/api/v1/...`  
-- **Swagger** configurado para documentação automática  
-
----
-
-## 📦 Exemplos de Endpoints
-
-### 🔹 GET — Listar alunos
-```
-GET /api/v1/alunos
+```bash
+cd gym-api
 ```
 
-### 🔹 POST — Cadastrar novo aluno
-```
-POST /api/v1/alunos
-Content-Type: application/json
+Execute o projeto:
 
-{
-  "nome": "João Silva",
-  "email": "joao@example.com",
-  "plano": "Mensal",
-  "dataInicio": "2025-01-10"
-}
+```bash
+./mvnw spring-boot:run
 ```
 
-### 🔹 DELETE — Remover aluno
+Ou, se estiver usando Maven instalado:
+
+```bash
+mvn spring-boot:run
 ```
-DELETE /api/v1/alunos/{id}
+
+## Frontend
+
+Entre na pasta do frontend:
+
+```bash
+cd gym-angular
 ```
 
----
+Instale as dependências:
 
-## 👨‍💻 Autor
+```bash
+npm install
+```
 
-**Ariel Melo (Full Stack Developer)**  
-📧 [ariel.melo2001@gmail.com](mailto:ariel.melo2001@gmail.com)  
-🌐 [linkedin.com/in/arielmello04](https://linkedin.com/in/arielmello04)  
-💻 *"Código limpo, escalável e com propósito."*
+Execute o projeto:
 
----
+```bash
+ng serve
+```
 
-## 📝 Licença
+A aplicação estará disponível em:
 
-Este projeto está licenciado sob a **MIT License** — veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+```bash
+http://localhost:4200
+```
 
----
+## Configuração
 
-> 💬 *Em breve: frontend em Angular integrado à API, com autenticação JWT, dashboards e design responsivo!*
+Antes de executar, ajuste os arquivos de configuração conforme seu ambiente, principalmente:
+
+- credenciais do banco de dados no backend
+- URL da API no frontend
+- variáveis de ambiente, se necessário
+
+## Objetivo do projeto
+
+Este projeto foi criado com foco em:
+
+- prática de desenvolvimento full stack
+- construção de portfólio
+- aplicação de autenticação e autorização
+- organização em camadas no backend
+- integração entre API REST e frontend moderno
+
+## Melhorias futuras
+
+- upload e gerenciamento de documentos
+- testes automatizados
+- melhorias de UX/UI
+- integração com serviços externos
+
+## Autor
+
+Desenvolvido por **Ariel Melo**.
