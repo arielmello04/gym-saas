@@ -1,6 +1,7 @@
 package com.gymsystem.documents;
 
 import com.gymsystem.documents.dto.UploadResponse;
+import com.gymsystem.documents.dto.UserDocumentResponse;
 import com.gymsystem.tenant.TenantRepository;
 import com.gymsystem.tenant.context.TenantGuard;
 import com.gymsystem.user.User;
@@ -11,6 +12,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.time.Instant;
 import java.util.List;
@@ -30,23 +32,26 @@ public class DocumentService {
     private final UserRepository userRepository;
     private final TenantRepository tenantRepository;
 
-    public List<UserDocument> myDocuments() {
+    public List<UserDocumentResponse> myDocuments() {
         Long tenantId = TenantGuard.currentTenantId();
-        return repository.findByUserIdAndTenantIdOrderByUploadedAtDesc(currentUser().getId(), tenantId);
+        return repository.findByUserIdAndTenantIdOrderByUploadedAtDesc(currentUser().getId(), tenantId)
+                .stream().map(this::toResponse).toList();
     }
 
-    public List<UserDocument> listByUser(Long userId) {
+    public List<UserDocumentResponse> listByUser(Long userId) {
         Long tenantId = TenantGuard.currentTenantId();
-        return repository.findByUserIdAndTenantIdOrderByUploadedAtDesc(userId, tenantId);
+        return repository.findByUserIdAndTenantIdOrderByUploadedAtDesc(userId, tenantId)
+                .stream().map(this::toResponse).toList();
     }
 
-    public List<UserDocument> listAll() {
+    public List<UserDocumentResponse> listAll() {
         Long tenantId = TenantGuard.currentTenantId();
-        return repository.findByTenantIdOrderByUploadedAtDesc(tenantId);
+        return repository.findByTenantIdOrderByUploadedAtDesc(tenantId)
+                .stream().map(this::toResponse).toList();
     }
 
     @Transactional
-    public UploadResponse uploadMy(String title, String category, MultipartFile file) throws Exception {
+    public UploadResponse uploadMy(String title, String category, MultipartFile file) {
         Long tenantId = TenantGuard.currentTenantId();
         var  tenant   = tenantRepository.findById(tenantId).orElseThrow();
         User me       = currentUser();
@@ -55,7 +60,12 @@ public class DocumentService {
         String mime = detectMime(file);
         if (!ALLOWED_MIME.contains(mime))   throw new IllegalArgumentException("Unsupported file type");
 
-        String relativePath = storage.save(file.getBytes(), file.getOriginalFilename());
+        String relativePath;
+        try {
+            relativePath = storage.save(file.getBytes(), file.getOriginalFilename());
+        } catch (IOException e) {
+            throw new IllegalStateException("Failed to store document", e);
+        }
         var now = Instant.now();
 
         UserDocument doc = UserDocument.builder()
@@ -72,7 +82,7 @@ public class DocumentService {
     }
 
     @Transactional
-    public void deleteMy(Long documentId) throws Exception {
+    public void deleteMy(Long documentId) {
         Long tenantId = TenantGuard.currentTenantId();
         User me  = currentUser();
         var  doc = repository.findById(documentId)
@@ -83,7 +93,11 @@ public class DocumentService {
         if (!doc.getUser().getId().equals(me.getId()))
             throw new SecurityException("Not allowed to delete this document");
 
-        storage.deleteIfExists(doc.getStoragePath());
+        try {
+            storage.deleteIfExists(doc.getStoragePath());
+        } catch (IOException e) {
+            throw new IllegalStateException("Failed to delete document from storage", e);
+        }
         repository.delete(doc);
     }
 
@@ -93,10 +107,20 @@ public class DocumentService {
                 .orElseThrow(() -> new IllegalStateException("Authenticated user not found: " + email));
     }
 
-    private String detectMime(MultipartFile file) throws Exception {
+    private String detectMime(MultipartFile file) {
         String headerType = file.getContentType();
         if (headerType != null && ALLOWED_MIME.contains(headerType)) return headerType;
-        String probed = Files.probeContentType(file.getResource().getFile().toPath());
-        return probed != null ? probed : MediaType.APPLICATION_OCTET_STREAM_VALUE;
+        try {
+            String probed = Files.probeContentType(file.getResource().getFile().toPath());
+            return probed != null ? probed : MediaType.APPLICATION_OCTET_STREAM_VALUE;
+        } catch (IOException e) {
+            throw new IllegalStateException("Unable to detect uploaded file type", e);
+        }
+    }
+
+    private UserDocumentResponse toResponse(UserDocument doc) {
+        return new UserDocumentResponse(
+                doc.getId(), doc.getTitle(), doc.getCategory(),
+                doc.getMimeType(), doc.getSizeBytes(), doc.getUploadedAt());
     }
 }

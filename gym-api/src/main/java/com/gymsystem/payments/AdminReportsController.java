@@ -13,7 +13,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/admin/reports")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyAuthority('ROLE_OWNER', 'ROLE_MANAGER', 'ROLE_ADMIN')")
+@PreAuthorize("hasAnyAuthority('ROLE_OWNER', 'ROLE_MANAGER', 'ROLE_ADMIN_APP', 'ROLE_ADMIN_WEB')")
 @Tag(name = "Admin — Relatórios", description = "Receita e churn por mês")
 public class AdminReportsController {
 

@@ -1,7 +1,7 @@
 // ── Auth ─────────────────────────────────────────────────────
 export interface LoginRequest  { email: string; password: string; }
 export interface SignupRequest { email: string; password: string; inviteToken: string; }
-export interface AuthResponse  { accessToken: string; email: string; role: string; }
+export interface AuthResponse  { accessToken: string; tokenType: string; }
 
 // ── Tenant ───────────────────────────────────────────────────
 export interface TenantInfo {
@@ -44,6 +44,10 @@ export interface WaitlistEntry {
 }
 
 // ── Payments ─────────────────────────────────────────────────
+export interface AdminSubscriptionSummary {
+  id: number; userEmail: string; planName: string; priceCents: number; currency: string;
+  status: string; currentPeriodEnd: string; nextBillingAt: string;
+}
 export interface SubscribeRequest {
   planName: string; priceCents: number; currency: string;
   paymentMethod: 'pix' | 'boleto' | 'credit_card';

@@ -1,8 +1,7 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
-
-interface CheckinStatus { checkinId: number; status: string; provider: string; startedAt: string; completedAt?: string; }
+import { CheckinApiService } from '../../core/services/api.service';
+import { CheckinStatus } from '../../core/models';
 
 @Component({
   selector: 'app-checkin',
@@ -68,18 +67,18 @@ export class CheckinComponent implements OnInit {
     { value: 'DIRECT',    icon: '📲', label: 'Direto'    },
   ];
 
-  constructor(private http: HttpClient) {}
+  constructor(private api: CheckinApiService) {}
 
   ngOnInit() {
-    this.http.get<CheckinStatus[]>('/api/v1/checkin/me').subscribe({
-      next: (h: CheckinStatus[]) => { this.history.set(h); if (h.length > 0) this.lastCheckin.set(h[0]); },
+    this.api.myHistory().subscribe({
+      next: (h) => { this.history.set(h); if (h.length > 0) this.lastCheckin.set(h[0]); },
     });
   }
 
   start(provider: string) {
     this.pending.set(provider);
-    this.http.post<CheckinStatus>('/api/v1/checkin/start', { provider }).subscribe({
-      next: (c: CheckinStatus) => { this.pending.set(null); this.lastCheckin.set(c); this.ngOnInit(); },
+    this.api.start(provider).subscribe({
+      next: (c) => { this.pending.set(null); this.lastCheckin.set(c); this.ngOnInit(); },
       error: (e: { error?: { message?: string } }) => { this.pending.set(null); alert(e.error?.message ?? 'Erro ao fazer check-in'); },
     });
   }

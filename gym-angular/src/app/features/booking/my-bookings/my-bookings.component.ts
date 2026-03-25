@@ -1,8 +1,7 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
-
-interface Booking { bookingId: number; classTypeName: string; startAt: string; status: string; }
+import { BookingApiService } from '../../../core/services/api.service';
+import { MyBookingItem } from '../../../core/models';
 
 @Component({
   selector: 'app-my-bookings',
@@ -48,16 +47,16 @@ interface Booking { bookingId: number; classTypeName: string; startAt: string; s
   `],
 })
 export class MyBookingsComponent implements OnInit {
-  bookings  = signal<Booking[]>([]);
+  bookings  = signal<MyBookingItem[]>([]);
   loading   = signal(true);
   canceling = signal<number | null>(null);
 
-  constructor(private http: HttpClient) {}
+  constructor(private api: BookingApiService) {}
   ngOnInit() { this.load(); }
 
-  cancel(b: Booking) {
+  cancel(b: MyBookingItem) {
     this.canceling.set(b.bookingId);
-    this.http.delete(`/api/v1/bookings/${b.bookingId}`).subscribe({
+    this.api.cancel(b.bookingId).subscribe({
       next:  () => { this.canceling.set(null); this.load(); },
       error: () => this.canceling.set(null),
     });
@@ -68,7 +67,7 @@ export class MyBookingsComponent implements OnInit {
 
   private load() {
     this.loading.set(true);
-    this.http.get<Booking[]>('/api/v1/bookings/me').subscribe({
+    this.api.myBookings().subscribe({
       next:  (b) => { this.bookings.set(b); this.loading.set(false); },
       error: () => this.loading.set(false),
     });

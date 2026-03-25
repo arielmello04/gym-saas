@@ -1,8 +1,7 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
-
-interface ProfilePreferences { allowRecording: boolean; allowPhotos: boolean; allowFaceVisibility: boolean; }
+import { ProfileApiService } from '../../core/services/api.service';
+import { ProfilePreferences } from '../../core/models';
 
 @Component({
   selector: 'app-profile',
@@ -55,11 +54,11 @@ export class ProfileComponent implements OnInit {
   saving   = signal(false);
   saved    = signal(false);
 
-  constructor(private http: HttpClient) {}
+  constructor(private api: ProfileApiService) {}
 
   ngOnInit() {
-    this.http.get<ProfilePreferences>('/api/v1/profile/preferences').subscribe({
-      next:  (p: ProfilePreferences) => { this.prefs = { ...p }; this.loading.set(false); },
+    this.api.get().subscribe({
+      next:  (p) => { this.prefs = { ...p }; this.loading.set(false); },
       error: () => { this.prefs = { allowRecording: true, allowPhotos: true, allowFaceVisibility: true }; this.loading.set(false); },
     });
   }
@@ -67,7 +66,7 @@ export class ProfileComponent implements OnInit {
   save() {
     if (!this.prefs) return;
     this.saving.set(true);
-    this.http.put<ProfilePreferences>('/api/v1/profile/preferences', this.prefs).subscribe({
+    this.api.update(this.prefs).subscribe({
       next:  () => { this.saving.set(false); this.saved.set(true); setTimeout(() => this.saved.set(false), 3000); },
       error: () => this.saving.set(false),
     });

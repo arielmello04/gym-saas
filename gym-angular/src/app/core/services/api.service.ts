@@ -3,7 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import {
   AvailabilityItem, BookingResponse, MyBookingItem, WaitlistEntry,
   Plan, SubscribeRequest, SubscribeResponse, Subscription, PaymentItem,
-  CheckinStatus, ProfilePreferences, TenantInfo, TenantMember
+  AdminSubscriptionSummary, CheckinStatus, ProfilePreferences, TenantInfo, TenantMember
 } from '../models';
 
 const API = '/api/v1';
@@ -38,10 +38,11 @@ export class PlansApiService {
 @Injectable({ providedIn: 'root' })
 export class PaymentApiService {
   constructor(private http: HttpClient) {}
-  subscribe(req: SubscribeRequest) { return this.http.post<SubscribeResponse>(`${API}/payments/subscribe`, req); }
-  mySubscription()                 { return this.http.get<Subscription>(`${API}/payments/my-subscription`); }
-  myInvoices()                     { return this.http.get<PaymentItem[]>(`${API}/payments/invoices`); }
-  cancel()                         { return this.http.delete<void>(`${API}/payments/cancel`); }
+  subscribe(req: SubscribeRequest)  { return this.http.post<SubscribeResponse>(`${API}/payments/subscribe`, req); }
+  mySubscription()                  { return this.http.get<Subscription>(`${API}/payments/my-subscription`); }
+  myInvoices()                      { return this.http.get<PaymentItem[]>(`${API}/payments/invoices`); }
+  cancel()                          { return this.http.delete<void>(`${API}/payments/cancel`); }
+  adminSubscriptions()              { return this.http.get<AdminSubscriptionSummary[]>(`${API}/payments/admin/subscriptions`); }
 }
 
 @Injectable({ providedIn: 'root' })

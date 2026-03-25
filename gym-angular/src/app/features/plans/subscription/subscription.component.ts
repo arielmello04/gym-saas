@@ -1,10 +1,8 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
-
-interface Subscription { id: number; planName: string; priceCents: number; currency: string; billingDay: number; status: string; currentPeriodStart: string; currentPeriodEnd: string; nextBillingAt: string; }
-interface PaymentItem  { id: number; amountCents: number; currency: string; status: string; providerRef?: string; dueAt: string; paidAt?: string; createdAt: string; }
+import { PaymentApiService } from '../../../core/services/api.service';
+import { Subscription, PaymentItem } from '../../../core/models';
 
 @Component({
   selector: 'app-subscription',
@@ -81,13 +79,13 @@ export class SubscriptionComponent implements OnInit {
   loading   = signal(true);
   canceling = signal(false);
 
-  constructor(private http: HttpClient) {}
+  constructor(private api: PaymentApiService) {}
 
   ngOnInit() {
-    this.http.get<Subscription>('/api/v1/payments/my-subscription').subscribe({
+    this.api.mySubscription().subscribe({
       next: (s) => {
         this.sub.set(s); this.loading.set(false);
-        this.http.get<PaymentItem[]>('/api/v1/payments/invoices').subscribe({ next: (i) => this.invoices.set(i) });
+        this.api.myInvoices().subscribe({ next: (i) => this.invoices.set(i) });
       },
       error: () => { this.sub.set(null); this.loading.set(false); },
     });
@@ -96,7 +94,7 @@ export class SubscriptionComponent implements OnInit {
   cancel() {
     if (!confirm('Cancelar assinatura? Você perde acesso ao fim do período atual.')) return;
     this.canceling.set(true);
-    this.http.delete('/api/v1/payments/cancel').subscribe({
+    this.api.cancel().subscribe({
       next:  () => { this.canceling.set(false); this.ngOnInit(); },
       error: () => this.canceling.set(false),
     });

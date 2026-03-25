@@ -1,7 +1,8 @@
 import { Component, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
+import { AuthService } from '../../../core/services/auth.service';
+import { LoginRequest } from '../../../core/models';
 
 @Component({
   selector: 'app-login',
@@ -53,16 +54,16 @@ export class LoginComponent {
   loading    = signal(false);
   error      = signal('');
 
-  constructor(private http: HttpClient, private router: Router) {}
+  constructor(private auth: AuthService, private router: Router) {}
 
   submit() {
     if (!this.tenantSlug || !this.email || !this.password) { this.error.set('Preencha todos os campos'); return; }
-    localStorage.setItem('gym_tenant', this.tenantSlug.trim().toLowerCase());
+    const tenant = this.tenantSlug.trim().toLowerCase();
+    this.auth.setTenant(tenant);
     this.loading.set(true); this.error.set('');
-    this.http.post<{ accessToken: string }>('/api/v1/auth/login', { email: this.email, password: this.password },
-  { headers: { 'X-Tenant-ID': this.tenantSlug.trim().toLowerCase() } }
-).subscribe({
-  next: (res) => { localStorage.setItem('gym_token', res.accessToken); this.router.navigate(['/dashboard']); },
+    const req: LoginRequest = { email: this.email, password: this.password };
+    this.auth.login(req).subscribe({
+      next: () => this.router.navigate(['/dashboard']),
       error: (e: { error?: { message?: string } }) => { this.loading.set(false); this.error.set(e.error?.message ?? 'E-mail ou senha incorretos'); },
     });
   }

@@ -1,8 +1,7 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
-
-interface Member { userId: number; email: string; role: string; active: boolean; }
+import { TenantApiService } from '../../../core/services/api.service';
+import { TenantMember } from '../../../core/models';
 
 @Component({
   selector: 'app-members',
@@ -56,7 +55,7 @@ interface Member { userId: number; email: string; role: string; active: boolean;
   `],
 })
 export class MembersComponent implements OnInit {
-  members  = signal<Member[]>([]);
+  members  = signal<TenantMember[]>([]);
   loading  = signal(true);
   adding   = signal(false);
   removing = signal<number | null>(null);
@@ -64,22 +63,22 @@ export class MembersComponent implements OnInit {
   newEmail = ''; newRole = 'MEMBER';
   readonly roles = ['MEMBER','TRAINER','STAFF','MANAGER'];
 
-  constructor(private http: HttpClient) {}
+  constructor(private api: TenantApiService) {}
   ngOnInit() { this.load(); }
 
   add() {
     if (!this.newEmail) return;
     this.adding.set(true); this.addError.set('');
-    this.http.post<Member>('/api/v1/tenant/members', { email: this.newEmail, role: this.newRole }).subscribe({
+    this.api.addMember(this.newEmail, this.newRole).subscribe({
       next:  () => { this.adding.set(false); this.newEmail = ''; this.load(); },
       error: (e: { error?: { message?: string } }) => { this.adding.set(false); this.addError.set(e.error?.message ?? 'Erro ao adicionar'); },
     });
   }
 
-  remove(m: Member) {
+  remove(m: TenantMember) {
     if (!confirm(`Remover ${m.email}?`)) return;
     this.removing.set(m.userId);
-    this.http.delete(`/api/v1/tenant/members/${m.userId}`).subscribe({
+    this.api.removeMember(m.userId).subscribe({
       next:  () => { this.removing.set(null); this.load(); },
       error: () => this.removing.set(null),
     });
@@ -87,7 +86,7 @@ export class MembersComponent implements OnInit {
 
   private load() {
     this.loading.set(true);
-    this.http.get<Member[]>('/api/v1/tenant/members').subscribe({
+    this.api.members().subscribe({
       next:  (m) => { this.members.set(m); this.loading.set(false); },
       error: () => this.loading.set(false),
     });

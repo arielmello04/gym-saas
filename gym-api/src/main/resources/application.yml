@@ -118,6 +118,6 @@ springdoc:
     path: /swagger-ui.html
 logging:
   level:
-    org.springframework.security: TRACE
-    org.springdoc: DEBUG
-    org.springframework.web: DEBUG
+    org.springframework.security: INFO
+    org.springdoc: INFO
+    org.springframework.web: INFO

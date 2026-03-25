@@ -1,8 +1,7 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
-
-interface SubSummary { id: number; userEmail: string; planName: string; priceCents: number; currency: string; status: string; currentPeriodEnd: string; nextBillingAt: string; }
+import { PaymentApiService } from '../../../core/services/api.service';
+import { AdminSubscriptionSummary } from '../../../core/models';
 
 @Component({
   selector: 'app-admin-payments',
@@ -42,13 +41,13 @@ interface SubSummary { id: number; userEmail: string; planName: string; priceCen
   `],
 })
 export class AdminPaymentsComponent implements OnInit {
-  subs    = signal<SubSummary[]>([]);
+  subs    = signal<AdminSubscriptionSummary[]>([]);
   loading = signal(true);
 
-  constructor(private http: HttpClient) {}
+  constructor(private api: PaymentApiService) {}
 
   ngOnInit() {
-    this.http.get<SubSummary[]>('/api/v1/payments/admin/subscriptions').subscribe({
+    this.api.adminSubscriptions().subscribe({
       next:  (s) => { this.subs.set(s); this.loading.set(false); },
       error: () => this.loading.set(false),
     });

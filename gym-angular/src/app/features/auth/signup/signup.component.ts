@@ -1,7 +1,8 @@
 import { Component, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
+import { AuthService } from '../../../core/services/auth.service';
+import { SignupRequest } from '../../../core/models';
 
 @Component({
   selector: 'app-signup',
@@ -39,18 +40,16 @@ export class SignupComponent {
   tenantSlug  = ''; email = ''; password = ''; inviteToken = '';
   loading = signal(false); error = signal('');
 
-  constructor(private http: HttpClient, private router: Router) {}
+  constructor(private auth: AuthService, private router: Router) {}
 
   submit() {
     if (!this.tenantSlug || !this.email || !this.password || !this.inviteToken) { this.error.set('Preencha todos os campos'); return; }
     const tenant = this.tenantSlug.trim().toLowerCase();
-    localStorage.setItem('gym_tenant', tenant);
+    this.auth.setTenant(tenant);
     this.loading.set(true);
-    this.http.post<{ token: string }>('/api/v1/auth/signup',
-      { email: this.email, password: this.password, inviteToken: this.inviteToken },
-      { headers: { 'X-Tenant-ID': tenant } }
-    ).subscribe({
-      next:  (res) => { localStorage.setItem('gym_token', res.token); this.router.navigate(['/dashboard']); },
+    const req: SignupRequest = { email: this.email, password: this.password, inviteToken: this.inviteToken };
+    this.auth.signup(req).subscribe({
+      next:  () => this.router.navigate(['/dashboard']),
       error: (e: { error?: { message?: string } }) => { this.loading.set(false); this.error.set(e.error?.message ?? 'Erro ao criar conta'); },
     });
   }

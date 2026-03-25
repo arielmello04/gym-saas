@@ -18,7 +18,7 @@ export class AuthService {
   readonly currentUser = computed(() => this._decode(this.token()));
   readonly tenantRole  = computed(() => this.currentUser()?.tenantRole ?? null);
   readonly isAdmin     = computed(() =>
-    this.currentUser()?.role === 'ADMIN' ||
+    ['ADMIN_APP', 'ADMIN_WEB'].includes(this.currentUser()?.role ?? '') ||
     ['OWNER','MANAGER'].includes(this.tenantRole() ?? '')
   );
 

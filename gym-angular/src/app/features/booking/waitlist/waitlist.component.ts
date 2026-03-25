@@ -1,8 +1,7 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
-
-interface WaitlistEntry { entryId: number; sessionId: number; sessionType: string; sessionStartAt: string; position: number; status: string; notifiedAt?: string; expiresAt?: string; totalWaiting: number; }
+import { WaitlistApiService } from '../../../core/services/api.service';
+import { WaitlistEntry } from '../../../core/models';
 
 @Component({
   selector: 'app-waitlist',
@@ -61,12 +60,12 @@ export class WaitlistComponent implements OnInit {
   loading = signal(true);
   pending = signal<number | null>(null);
 
-  constructor(private http: HttpClient) {}
+  constructor(private api: WaitlistApiService) {}
   ngOnInit() { this.load(); }
 
   confirm(e: WaitlistEntry) {
     this.pending.set(e.sessionId);
-    this.http.post<unknown>(`/api/v1/waitlist/${e.sessionId}/confirm`, {}).subscribe({
+    this.api.confirm(e.sessionId).subscribe({
       next:  () => { this.pending.set(null); this.load(); },
       error: () => this.pending.set(null),
     });
@@ -74,7 +73,7 @@ export class WaitlistComponent implements OnInit {
 
   leave(e: WaitlistEntry) {
     this.pending.set(e.sessionId);
-    this.http.delete(`/api/v1/waitlist/${e.sessionId}/leave`).subscribe({
+    this.api.leave(e.sessionId).subscribe({
       next:  () => { this.pending.set(null); this.load(); },
       error: () => this.pending.set(null),
     });
@@ -84,7 +83,7 @@ export class WaitlistComponent implements OnInit {
 
   private load() {
     this.loading.set(true);
-    this.http.get<WaitlistEntry[]>('/api/v1/waitlist/me').subscribe({
+    this.api.myEntries().subscribe({
       next:  (e) => { this.entries.set(e); this.loading.set(false); },
       error: () => this.loading.set(false),
     });

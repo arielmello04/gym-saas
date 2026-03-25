@@ -1,8 +1,7 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { HttpClient, HttpParams } from '@angular/common/http';
-
-interface Session { sessionId: number; classTypeName: string; startAt: string; endAt: string; capacity: number; spotsLeft: number; notes?: string; }
+import { BookingApiService, WaitlistApiService } from '../../../core/services/api.service';
+import { AvailabilityItem } from '../../../core/models';
 
 @Component({
   selector: 'app-availability',
@@ -75,14 +74,14 @@ interface Session { sessionId: number; classTypeName: string; startAt: string; e
   `],
 })
 export class AvailabilityComponent implements OnInit {
-  sessions = signal<Session[]>([]);
+  sessions = signal<AvailabilityItem[]>([]);
   loading  = signal(true);
   pending  = signal<number | null>(null);
   feedback = signal<Record<number, { ok: boolean; msg: string } | undefined>>({});
 
   private weekStart = this.mondayOf(new Date());
 
-  constructor(private http: HttpClient) {}
+  constructor(private booking: BookingApiService, private waitlist: WaitlistApiService) {}
   ngOnInit() { this.load(); }
 
   weekLabel() {
@@ -93,19 +92,19 @@ export class AvailabilityComponent implements OnInit {
 
   prevWeek() { this.weekStart.setDate(this.weekStart.getDate() - 7); this.load(); }
   nextWeek() { this.weekStart.setDate(this.weekStart.getDate() + 7); this.load(); }
-  durationMin(s: Session) { return Math.round((new Date(s.endAt).getTime() - new Date(s.startAt).getTime()) / 60000); }
+  durationMin(s: AvailabilityItem) { return Math.round((new Date(s.endAt).getTime() - new Date(s.startAt).getTime()) / 60000); }
 
-  book(s: Session) {
+  book(s: AvailabilityItem) {
     this.pending.set(s.sessionId);
-    this.http.post<unknown>('/api/v1/bookings', { sessionId: s.sessionId }).subscribe({
+    this.booking.book(s.sessionId).subscribe({
       next:  () => { this.setFeedback(s.sessionId, true, '✅ Reserva confirmada!'); this.load(); },
       error: (e: { error?: { message?: string } }) => { this.pending.set(null); this.setFeedback(s.sessionId, false, e.error?.message ?? 'Erro ao reservar'); },
     });
   }
 
-  joinWaitlist(s: Session) {
+  joinWaitlist(s: AvailabilityItem) {
     this.pending.set(s.sessionId);
-    this.http.post<{ position: number }>(`/api/v1/waitlist/${s.sessionId}/join`, {}).subscribe({
+    this.waitlist.join(s.sessionId).subscribe({
       next:  (r) => { this.pending.set(null); this.setFeedback(s.sessionId, true, `✅ Posição ${r.position} na fila!`); },
       error: (e: { error?: { message?: string } }) => { this.pending.set(null); this.setFeedback(s.sessionId, false, e.error?.message ?? 'Erro ao entrar na fila'); },
     });
@@ -115,8 +114,7 @@ export class AvailabilityComponent implements OnInit {
     this.loading.set(true); this.feedback.set({});
     const from = new Date(this.weekStart).toISOString();
     const to   = new Date(this.weekStart.getTime() + 7 * 86400000).toISOString();
-    const params = new HttpParams().set('from', from).set('to', to);
-    this.http.get<Session[]>('/api/v1/classes/availability', { params }).subscribe({
+    this.booking.getAvailability(from, to).subscribe({
       next:  (s) => { this.sessions.set(s); this.loading.set(false); this.pending.set(null); },
       error: () => this.loading.set(false),
     });

@@ -1,9 +1,7 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
-
-interface Plan { id: number; name: string; description: string; priceCents: number; priceReais: number; currency: string; intervalMonths: number; intervalLabel: string; }
-interface SubscribeResponse { subscriptionId: number; paymentStatus: string; providerRef: string; pixCode?: string; pixQrCode?: string; boletoBarcode?: string; boletoUrl?: string; expiresAt?: string; }
+import { PlansApiService, PaymentApiService } from '../../core/services/api.service';
+import { Plan, SubscribeResponse } from '../../core/models';
 
 @Component({
   selector: 'app-plans',
@@ -113,22 +111,22 @@ export class PlansComponent implements OnInit {
     { value: 'boleto' as const, icon: '📄', label: 'Boleto' },
   ];
 
-  constructor(private http: HttpClient) {}
+  constructor(private plansApi: PlansApiService, private paymentApi: PaymentApiService) {}
 
   ngOnInit() {
-    this.http.get<Plan[]>('/api/v1/plans').subscribe({
-      next:  (p: Plan[]) => { this.plans.set(p); this.loading.set(false); },
-      error: ()           => this.loading.set(false),
+    this.plansApi.list().subscribe({
+      next:  (p) => { this.plans.set(p); this.loading.set(false); },
+      error: ()  => this.loading.set(false),
     });
   }
 
   subscribe(plan: Plan) {
     this.subscribing.set(plan.id);
-    this.http.post<SubscribeResponse>('/api/v1/payments/subscribe', {
+    this.paymentApi.subscribe({
       planName: plan.name, priceCents: plan.priceCents,
       currency: plan.currency, paymentMethod: this.selectedMethod(),
     }).subscribe({
-      next: (res: SubscribeResponse) => {
+      next: (res) => {
         this.subscribing.set(null);
         if (res.pixCode || res.pixQrCode) this.pixResult.set(res);
         else if (res.boletoUrl)           this.boletoResult.set(res);
