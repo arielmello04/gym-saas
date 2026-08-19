@@ -1,5 +1,6 @@
 package com.gymsystem.user;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -26,6 +27,8 @@ public class User {
     @Column(nullable = false)
     private String email;
 
+    /** Never leaves the server: entities occasionally reach a response body by accident. */
+    @JsonIgnore
     @NotBlank
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
