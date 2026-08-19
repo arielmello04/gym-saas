@@ -1,147 +1,143 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { PlansApiService, PaymentApiService } from '../../core/services/api.service';
-import { Plan, SubscribeResponse } from '../../core/models';
+import { Router } from '@angular/router';
+import { PaymentApiService, PlansApiService } from '../../core/services/api.service';
+import { ToastService } from '../../core/services/toast.service';
+import { Plan } from '../../core/models';
+import { IconComponent } from '../../shared/icon.component';
+
+type Method = 'pix' | 'boleto';
 
 @Component({
   selector: 'app-plans',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, IconComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="page-header">
-      <h1>💳 Planos</h1>
-      <a routerLink="/subscription" class="btn btn-secondary btn-sm">Minha assinatura →</a>
+      <div class="page-title">
+        <h1>Planos</h1>
+        <span class="page-subtitle">Escolha o plano e a forma de pagamento.</span>
+      </div>
+      <a routerLink="/subscription" class="btn btn-secondary btn-sm">Minha assinatura</a>
+    </div>
+
+    <div class="methods">
+      <span class="methods-label">Pagamento</span>
+      @for (m of methods; track m.value) {
+        <button class="method" [class.active]="method() === m.value" (click)="method.set(m.value)">
+          {{ m.label }}
+        </button>
+      }
     </div>
 
     @if (loading()) {
-      <div style="display:flex;justify-content:center;padding:48px"><div class="spinner"></div></div>
+      <div class="grid-cards">
+        @for (i of [1,2,3]; track i) { <div class="skeleton" style="height:230px"></div> }
+      </div>
+    } @else if (plans().length === 0) {
+      <div class="empty-state">
+        <div class="icon"><app-icon name="tag" [size]="40" [stroke]="1.4" /></div>
+        <h3>Nenhum plano disponível</h3>
+        <p>Esta academia ainda não publicou planos. Fale com a recepção.</p>
+      </div>
     } @else {
-      <div class="plans-grid">
-        @for (p of plans(); track p.id) {
-          <div class="plan-card card">
-            <h3 class="plan-name">{{ p.name }}</h3>
-            <p class="plan-desc">{{ p.description }}</p>
-            <div class="plan-price">
-              <span class="price-value">R$ {{ p.priceReais.toFixed(2) }}</span>
-              <span class="price-period">/ {{ p.intervalLabel }}</span>
-            </div>
+      <div class="grid-cards">
+        @for (p of plans(); track p.id; let i = $index) {
+          <article class="plan enter" [class.featured]="i === 1">
+            @if (i === 1) { <span class="tagline">Mais escolhido</span> }
 
-            <div class="method-selector">
-              <label>Pagamento</label>
-              <div class="method-btns">
-                @for (m of methods; track m.value) {
-                  <button class="method-btn" [class.active]="selectedMethod() === m.value"
-                          (click)="selectedMethod.set(m.value)">
-                    {{ m.icon }} {{ m.label }}
-                  </button>
-                }
-              </div>
-            </div>
+            <h2 class="p-name">{{ p.name }}</h2>
+            @if (p.description) { <p class="p-desc">{{ p.description }}</p> }
 
-            <button class="btn btn-primary btn-full" [disabled]="subscribing() === p.id" (click)="subscribe(p)">
-              @if (subscribing() === p.id) { <span class="spinner" style="width:15px;height:15px"></span> }
+            <div class="p-price">
+              <span class="p-currency">R$</span>
+              <span class="p-value nums">{{ formatValue(p.priceReais) }}</span>
+              <span class="p-period">/ {{ p.intervalLabel }}</span>
+            </div>
+            <p class="p-month nums">{{ perMonth(p) }}</p>
+
+            <button class="btn btn-full" [class.btn-primary]="i === 1" [class.btn-secondary]="i !== 1"
+                    [disabled]="subscribing() !== null" (click)="subscribe(p)">
+              @if (subscribing() === p.id) { <span class="spinner spinner-sm"></span> }
               Assinar
             </button>
-          </div>
+          </article>
         }
       </div>
-
-      @if (pixResult()) {
-        <div class="modal-overlay" (click)="pixResult.set(null)">
-          <div class="modal-card card" (click)="$event.stopPropagation()">
-            <h3>✅ Pague via Pix</h3>
-            @if (pixResult()!.pixQrCode) {
-              <img [src]="'data:image/png;base64,' + pixResult()!.pixQrCode" alt="QR Code Pix" class="pix-qr">
-            }
-            @if (pixResult()!.pixCode) {
-              <p class="pix-label">Copia e cola:</p>
-              <textarea readonly [value]="pixResult()!.pixCode!" rows="3" style="width:100%;resize:none;font-size:12px;font-family:monospace;padding:8px;border-radius:6px;border:1px solid var(--color-border)"></textarea>
-              <button class="btn btn-secondary btn-sm" style="margin-top:8px" (click)="copyPix()">
-                {{ copied() ? '✅ Copiado!' : '📋 Copiar' }}
-              </button>
-            }
-            <p style="font-size:13px;color:var(--color-text-muted);margin:12px 0">Pix expira em 24h. Assinatura ativada automaticamente após pagamento.</p>
-            <button class="btn btn-primary" (click)="pixResult.set(null)">Fechar</button>
-          </div>
-        </div>
-      }
-
-      @if (boletoResult()) {
-        <div class="modal-overlay" (click)="boletoResult.set(null)">
-          <div class="modal-card card" (click)="$event.stopPropagation()">
-            <h3>📄 Boleto gerado</h3>
-            @if (boletoResult()!.boletoUrl) {
-              <a [href]="boletoResult()!.boletoUrl" target="_blank" class="btn btn-primary btn-full">Abrir boleto</a>
-            }
-            <p style="font-size:13px;color:var(--color-text-muted);margin:12px 0">Vencimento em 3 dias úteis.</p>
-            <button class="btn btn-secondary" (click)="boletoResult.set(null)">Fechar</button>
-          </div>
-        </div>
-      }
     }
   `,
   styles: [`
-    .plans-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:20px; }
-    .plan-card { display:flex; flex-direction:column; gap:12px;
-      .plan-name { margin:0; font-size:18px; font-weight:700; }
-      .plan-desc { margin:0; font-size:14px; color:var(--color-text-muted); }
-      .plan-price { .price-value{font-size:28px;font-weight:700;color:var(--color-primary);} .price-period{font-size:14px;color:var(--color-text-muted);} }
-    }
-    .method-selector { label{font-size:12px;font-weight:500;color:var(--color-text-muted);margin-bottom:6px;display:block;}
-      .method-btns { display:flex; gap:6px; }
-      .method-btn { padding:6px 12px; border:1.5px solid var(--color-border); border-radius:20px; background:none; cursor:pointer; font-size:13px; transition:all var(--transition);
-        &.active { border-color:var(--color-primary); background:#eef2ff; color:var(--color-primary); font-weight:600; }
-      }
-    }
-    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:200; display:flex; align-items:center; justify-content:center; padding:16px; }
-    .modal-card { max-width:440px; width:100%; h3{margin:0 0 20px;} .pix-qr{display:block;margin:0 auto 16px;max-width:220px;border-radius:8px;} .pix-label{margin:0 0 4px;font-size:13px;font-weight:500;} }
+    .methods { display: flex; align-items: center; gap: 8px; margin-bottom: 22px; flex-wrap: wrap; }
+    .methods-label { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-dim); margin-right: 4px; }
+    .method { padding: 7px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-pill); color: var(--text-muted); font-family: var(--font); font-size: 13px; font-weight: 600; cursor: pointer; transition: all var(--t-fast); }
+    .method:hover { border-color: var(--border-strong); color: var(--text); }
+    .method.active { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+
+    .plan { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 24px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); transition: border-color var(--t), transform var(--t); }
+    .plan:hover { border-color: var(--border-strong); transform: translateY(-3px); }
+    .plan.featured { border-color: var(--accent-line); box-shadow: var(--glow); }
+    .tagline { position: absolute; top: -10px; left: 24px; padding: 3px 10px; background: var(--accent); color: var(--accent-ink); border-radius: var(--r-pill); font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+    .p-name { font-size: 17px; }
+    .p-desc { font-size: 13px; color: var(--text-muted); min-height: 36px; }
+    .p-price { display: flex; align-items: baseline; gap: 4px; margin-top: 6px; }
+    .p-currency { font-size: 15px; font-weight: 600; color: var(--text-muted); }
+    .p-value { font-size: 38px; font-weight: 800; letter-spacing: -.045em; line-height: 1; }
+    .p-period { font-size: 13px; color: var(--text-muted); }
+    .p-month { font-size: 12px; color: var(--text-dim); margin-bottom: 10px; }
+    .featured .p-value { color: var(--accent); }
   `],
 })
 export class PlansComponent implements OnInit {
-  plans        = signal<Plan[]>([]);
-  loading      = signal(true);
-  subscribing  = signal<number | null>(null);
-  pixResult    = signal<SubscribeResponse | null>(null);
-  boletoResult = signal<SubscribeResponse | null>(null);
-  copied       = signal(false);
-  selectedMethod = signal<'pix' | 'boleto'>('pix');
+  private plansApi = inject(PlansApiService);
+  private paymentApi = inject(PaymentApiService);
+  private toast = inject(ToastService);
+  private router = inject(Router);
 
-  readonly methods = [
-    { value: 'pix'    as const, icon: '⚡', label: 'Pix'    },
-    { value: 'boleto' as const, icon: '📄', label: 'Boleto' },
+  readonly methods: { value: Method; label: string }[] = [
+    { value: 'pix',    label: 'Pix' },
+    { value: 'boleto', label: 'Boleto' },
   ];
 
-  constructor(private plansApi: PlansApiService, private paymentApi: PaymentApiService) {}
+  plans = signal<Plan[]>([]);
+  loading = signal(true);
+  subscribing = signal<number | null>(null);
+  method = signal<Method>('pix');
 
   ngOnInit() {
     this.plansApi.list().subscribe({
-      next:  (p) => { this.plans.set(p); this.loading.set(false); },
-      error: ()  => this.loading.set(false),
+      next: p => { this.plans.set(p); this.loading.set(false); },
+      error: e => {
+        this.loading.set(false);
+        this.toast.fromApi(e, 'Não foi possível carregar os planos.');
+      },
     });
+  }
+
+  formatValue(reais: number) {
+    return reais.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  /** Comparação honesta entre planos de ciclos diferentes. */
+  perMonth(p: Plan) {
+    if (p.intervalMonths <= 1) return 'cobrado todo mês';
+    const mensal = p.priceReais / p.intervalMonths;
+    return `equivale a R$ ${this.formatValue(mensal)} por mês`;
   }
 
   subscribe(plan: Plan) {
     this.subscribing.set(plan.id);
-    this.paymentApi.subscribe({
-      planName: plan.name, priceCents: plan.priceCents,
-      currency: plan.currency, paymentMethod: this.selectedMethod(),
-    }).subscribe({
-      next: (res) => {
+    // Só o id vai no corpo: o preço é do catálogo do servidor.
+    this.paymentApi.subscribe({ planId: plan.id, paymentMethod: this.method() }).subscribe({
+      next: () => {
         this.subscribing.set(null);
-        if (res.pixCode || res.pixQrCode) this.pixResult.set(res);
-        else if (res.boletoUrl)           this.boletoResult.set(res);
+        this.toast.success(`Assinatura do plano ${plan.name} criada.`);
+        this.router.navigate(['/subscription']);
       },
-      error: (e: { error?: { message?: string } }) => {
+      error: e => {
         this.subscribing.set(null);
-        alert(e.error?.message ?? 'Erro ao assinar');
+        this.toast.fromApi(e, 'Não foi possível concluir a assinatura.');
       },
-    });
-  }
-
-  copyPix() {
-    const code = this.pixResult()?.pixCode;
-    if (code) navigator.clipboard.writeText(code).then(() => {
-      this.copied.set(true); setTimeout(() => this.copied.set(false), 2000);
     });
   }
 }

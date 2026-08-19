@@ -6,7 +6,10 @@
     "gym-web": {
       "projectType": "application",
       "schematics": {
-        "@schematics/angular:component": { "standalone": true, "style": "scss" }
+        "@schematics/angular:component": {
+          "standalone": true,
+          "style": "scss"
+        }
       },
       "root": "",
       "sourceRoot": "src",
@@ -18,22 +21,40 @@
             "outputPath": "dist/gym-web",
             "index": "src/index.html",
             "browser": "src/main.ts",
-            "polyfills": ["zone.js"],
+            "polyfills": [
+              "zone.js"
+            ],
             "tsConfig": "tsconfig.app.json",
-            "assets": ["src/favicon.ico", "src/assets"],
-            "styles": ["src/styles.scss"],
-            "scripts": []
+            "assets": [
+              "src/favicon.ico",
+              "src/assets"
+            ],
+            "styles": [
+              "src/styles.scss"
+            ],
+            "scripts": [],
+            "inlineStyleLanguage": "scss"
           },
           "configurations": {
             "production": {
               "budgets": [
-                { "type": "initial",  "maximumWarning": "500kb", "maximumError": "1mb" },
-                { "type": "anyComponentStyle", "maximumWarning": "2kb", "maximumError": "4kb" }
+                {
+                  "type": "initial",
+                  "maximumWarning": "500kb",
+                  "maximumError": "1mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "2kb",
+                  "maximumError": "4kb"
+                }
               ],
               "outputHashing": "all",
               "fileReplacements": [
-                { "replace": "src/environments/environment.ts",
-                  "with":    "src/environments/environment.prod.ts" }
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.prod.ts"
+                }
               ]
             },
             "development": {
@@ -47,8 +68,12 @@
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
-            "production":  { "buildTarget": "gym-web:build:production" },
-            "development": { "buildTarget": "gym-web:build:development" }
+            "production": {
+              "buildTarget": "gym-web:build:production"
+            },
+            "development": {
+              "buildTarget": "gym-web:build:development"
+            }
           },
           "defaultConfiguration": "development"
         }
