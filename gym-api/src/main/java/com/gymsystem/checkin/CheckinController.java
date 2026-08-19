@@ -1,6 +1,7 @@
 // src/main/java/com/gymsystem/checkin/CheckinController.java
 package com.gymsystem.checkin;
 
+import com.gymsystem.checkin.dto.CheckinItem;
 import com.gymsystem.checkin.dto.StartCheckinRequest;
 import com.gymsystem.checkin.dto.StartCheckinResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -31,7 +32,7 @@ public class CheckinController {
 
     @Operation(summary = "List my check-in history")
     @GetMapping("/history")
-    public ResponseEntity<List<Checkin>> history() {
+    public ResponseEntity<List<CheckinItem>> history() {
         return ResponseEntity.ok(service.myHistory());
     }
 }

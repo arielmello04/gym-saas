@@ -33,6 +33,13 @@ public class Checkin {
     @Column(nullable = false, length = 20)
     private CheckinStatus status;
 
+    /** Identificacao do aluno no parceiro, para conciliar com o repasse deles. */
+    @Column(name = "partner_member_ref", length = 120) private String partnerMemberRef;
+    @Column(name = "partner_plan",       length = 120) private String partnerPlan;
+
+    /** Motivo da recusa, quando o parceiro nao autoriza a entrada. */
+    @Column(name = "failure_reason",     length = 255) private String failureReason;
+
     @Column(name = "started_at",   nullable = false) private Instant startedAt;
     @Column(name = "completed_at")                   private Instant completedAt;
 }
