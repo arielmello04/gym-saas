@@ -4,6 +4,7 @@ import com.gymsystem.booking.BookingEnforcer;
 import com.gymsystem.notifications.EmailService;
 import com.gymsystem.payments.dto.*;
 import com.gymsystem.payments.gateway.*;
+import com.gymsystem.payments.plan.MembershipPlanService;
 import com.gymsystem.tenant.TenantRepository;
 import com.gymsystem.tenant.context.TenantGuard;
 import com.gymsystem.user.User;
@@ -32,6 +33,7 @@ public class SubscriptionService {
     private final BookingEnforcer        bookingEnforcer;
     private final EmailService           emailService;
     private final PaymentGateway         paymentGateway;   // injected via @ConditionalOnProperty
+    private final MembershipPlanService  planService;
 
     @Value("${app.base-url:http://localhost:8080}")
     private String baseUrl;
@@ -59,11 +61,16 @@ public class SubscriptionService {
         int     billingDay = getSafeBillingDay(user.getCreatedAt());
         var     period     = computeMonthlyPeriod(now, billingDay);
 
+        // Preco vem do catalogo da academia. O cliente escolhe o plano; quanto
+        // custa e com o servidor.
+        var plan = planService.requireActiveForSubscription(req.getPlanId());
+
         Subscription sub = Subscription.builder()
                 .user(user).tenant(tenant)
-                .planName(req.getPlanName())
-                .priceCents(req.getPriceCents())
-                .currency(req.getCurrency())
+                .plan(plan)
+                .planName(plan.getName())
+                .priceCents(plan.getPriceCents())
+                .currency(plan.getCurrency())
                 .billingDay(billingDay)
                 .status(SubscriptionStatus.ACTIVE)
                 .currentPeriodStart(period.start())

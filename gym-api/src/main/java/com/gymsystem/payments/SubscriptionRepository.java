@@ -11,11 +11,10 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
     Optional<Subscription> findByUserIdAndTenantIdAndStatusIn(
             Long userId, Long tenantId, Iterable<SubscriptionStatus> statuses);
 
-    // ── Usado por BookingEnforcer (sem tenantId) ──────────────
-    Optional<Subscription> findByUserIdAndStatusIn(
-            Long userId, Iterable<SubscriptionStatus> statuses);
-
-    // ── Usado por AdminPaymentController e AdminReportsService ─
+    // ── Usado por AdminSubscriptionController e AdminReportsService ─
     List<Subscription> findByTenantIdAndStatusIn(
             Long tenantId, Iterable<SubscriptionStatus> statuses);
+
+    /** Visao administrativa: todas as assinaturas da academia, em qualquer situacao. */
+    List<Subscription> findByTenantIdOrderByCreatedAtDesc(Long tenantId);
 }
