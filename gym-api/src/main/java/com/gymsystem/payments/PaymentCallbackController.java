@@ -82,11 +82,7 @@ public class PaymentCallbackController {
     // so SubscriptionService stays provider-agnostic.
 
     private String extractProviderRef(JsonNode root) {
-        // Mercado Pago: { "data": { "id": "..." } }
-        if (root.has("data") && root.get("data").has("id"))
-            return root.get("data").get("id").asText();
-
-        // Pagar.me: { "data": { "id": "ord_..." } }
+        // Mercado Pago e Pagar.me: { "data": { "id": "..." } }
         if (root.has("data") && root.get("data").has("id"))
             return root.get("data").get("id").asText();
 

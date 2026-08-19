@@ -1,6 +1,7 @@
 package com.gymsystem.payments.gateway;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.gymsystem.payments.webhook.HmacVerifier;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -9,11 +10,8 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.util.HexFormat;
 import java.util.Map;
 
 /**
@@ -179,11 +177,7 @@ public class MercadoPagoGateway implements PaymentGateway {
             if (ts == null || v1 == null) return false;
 
             String manifest = "id:" + xRequestId + ";request-id:" + xRequestId + ";ts:" + ts + ";";
-            Mac mac = Mac.getInstance("HmacSHA256");
-            mac.init(new SecretKeySpec(webhookSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
-            String computed = HexFormat.of().formatHex(mac.doFinal(manifest.getBytes(StandardCharsets.UTF_8)));
-
-            return computed.equals(v1);
+            return HmacVerifier.matchesHex(webhookSecret, manifest, v1);
 
         } catch (Exception e) {
             log.error("[MercadoPago] Webhook verification failed: {}", e.getMessage());

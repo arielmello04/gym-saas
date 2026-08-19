@@ -1,6 +1,7 @@
 package com.gymsystem.payments.gateway;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.gymsystem.payments.webhook.HmacVerifier;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -10,11 +11,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.util.HexFormat;
 import java.util.Map;
 
 /**
@@ -162,12 +160,7 @@ public class StripeGateway implements PaymentGateway {
             if (timestamp == null || v1 == null) return false;
 
             String signedPayload = timestamp + "." + new String(rawBody, StandardCharsets.UTF_8);
-            Mac mac = Mac.getInstance("HmacSHA256");
-            mac.init(new SecretKeySpec(webhookSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
-            String computed = HexFormat.of().formatHex(
-                    mac.doFinal(signedPayload.getBytes(StandardCharsets.UTF_8)));
-
-            return computed.equals(v1);
+            return HmacVerifier.matchesHex(webhookSecret, signedPayload, v1);
         } catch (Exception e) {
             log.error("[Stripe] Webhook verification failed: {}", e.getMessage());
             return false;

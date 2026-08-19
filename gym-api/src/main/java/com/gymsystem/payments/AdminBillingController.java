@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/admin/billing")
 @RequiredArgsConstructor
-@PreAuthorize("hasAuthority('ROLE_ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN_APP','ADMIN_WEB')")
 @Tag(name = "Admin — Billing", description = "Controle manual do scheduler de cobrança")
 public class AdminBillingController {
 
