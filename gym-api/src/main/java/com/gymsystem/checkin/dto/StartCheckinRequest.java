@@ -7,8 +7,16 @@ import lombok.Data;
 /** Client request to start a check-in flow. */
 @Data
 public class StartCheckinRequest {
+
+    /** WELLHUB | TOTALPASS | DIRECT. "GYMPASS" ainda e aceito como WELLHUB. */
     @NotBlank
-    private String provider; // GYMPASS | TOTALPASS | DIRECT
+    private String provider;
+
+    /**
+     * Codigo apresentado pelo aluno, gerado no app do parceiro.
+     * Obrigatorio para WELLHUB e TOTALPASS, ignorado em DIRECT.
+     */
+    private String code;
 
     /** Only used when provider == DIRECT */
     private String gymName;

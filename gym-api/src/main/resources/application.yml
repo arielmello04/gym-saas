@@ -81,7 +81,40 @@ notifications:
 
 # ─── Check-in ────────────────────────────────────────────────
 checkin:
+  # Segredo do callback assincrono do provedor (header X-Provider-Secret).
   callback-secret: ${CHECKIN_SECRET:change-me}
+
+  # Parceiros de check-in. Uma academia costuma estar nos dois ao mesmo tempo,
+  # entao ambos ficam ativos e a escolha e por requisicao.
+  #
+  # mode=mock: valida sem chamar o parceiro (qualquer codigo passa; codigo
+  # comecando por DENY e recusado). Serve para desenvolver e testar o fluxo
+  # inteiro antes de ter credencial. mode=live: chama a API de verdade.
+  partners:
+    # Segredo embutido na URL de webhook. A TotalPass nao assina a chamada,
+    # entao e ele que impede alguem de criar entradas conhecendo a URL.
+    webhook-secret: ${CHECKIN_WEBHOOK_SECRET:change-me}
+
+    # Fecha os check-ins recebidos que passaram do prazo do parceiro.
+    expiry-check-ms: 300000
+
+    # Wellhub — Access Control API. O aluno faz check-in no app e a academia
+    # valida enviando o gympass_id dele. Token estatico entregue pelo Wellhub.
+    # Sandbox: https://apitesting.partners.gympass.com/access/v1
+    wellhub:
+      mode:     ${WELLHUB_MODE:mock}
+      base-url: ${WELLHUB_BASE_URL:https://api.partners.gympass.com/access/v1}
+      token:    ${WELLHUB_TOKEN:}
+      gym-id:   ${WELLHUB_GYM_ID:}
+
+    # TotalPass — quem chama e o parceiro. Autenticamos a unidade, registramos
+    # a URL de webhook, e confirmamos a entrada no link que vem no payload.
+    totalpass:
+      mode:             ${TOTALPASS_MODE:mock}
+      auth-url:         ${TOTALPASS_AUTH_URL:https://booking-api.totalpass.com/partner/auth}
+      webhook-base-url: ${TOTALPASS_WEBHOOK_URL:https://booking-api.totalpass.com/partner/webhook}
+      partner-api-key:  ${TOTALPASS_PARTNER_API_KEY:}
+      place-api-key:    ${TOTALPASS_PLACE_API_KEY:}
 
 # ─── Rate Limit ──────────────────────────────────────────────
 ratelimit:
@@ -111,6 +144,13 @@ management:
     web:
       exposure:
         include: health,info
+  health:
+    # O starter-mail registra um health check que abre conexao com o SMTP. Com
+    # notifications.email.provider=console (o padrao) nao ha SMTP configurado,
+    # entao esse check falhava e derrubava o /actuator/health inteiro para DOWN -
+    # o que reprova qualquer readiness probe. Ligue de volta junto com o SMTP.
+    mail:
+      enabled: false
 springdoc:
   api-docs:
     path: /v3/api-docs
@@ -118,6 +158,6 @@ springdoc:
     path: /swagger-ui.html
 logging:
   level:
-    org.springframework.security: TRACE
-    org.springdoc: DEBUG
-    org.springframework.web: DEBUG
+    org.springframework.security: INFO
+    org.springdoc: INFO
+    org.springframework.web: INFO

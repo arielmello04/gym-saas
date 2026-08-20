@@ -9,6 +9,7 @@ import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import com.gymsystem.documents.dto.UserDocumentResponse;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -26,7 +27,7 @@ public class AdminDocumentController {
 
     @Operation(summary = "List all documents for a user")
     @GetMapping
-    public ResponseEntity<List<UserDocument>> list(@PathVariable Long userId) {
+    public ResponseEntity<List<UserDocumentResponse>> list(@PathVariable Long userId) {
         return ResponseEntity.ok(service.listByUser(userId));
     }
 

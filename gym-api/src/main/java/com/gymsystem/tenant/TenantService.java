@@ -1,5 +1,7 @@
 package com.gymsystem.tenant;
 
+import com.gymsystem.booking.config.BookingConfig;
+import com.gymsystem.booking.config.BookingConfigRepository;
 import com.gymsystem.tenant.context.TenantContext;
 import com.gymsystem.tenant.dto.*;
 import com.gymsystem.user.User;
@@ -10,6 +12,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.time.LocalTime;
 import java.util.List;
 
 @Service
@@ -19,6 +22,7 @@ public class TenantService {
     private final TenantRepository tenantRepository;
     private final TenantUserRepository tenantUserRepository;
     private final UserRepository userRepository;
+    private final BookingConfigRepository bookingConfigRepository;
 
     // ─── Tenant CRUD ─────────────────────────────────────────
 
@@ -51,7 +55,32 @@ public class TenantService {
                 .build();
         tenantUserRepository.save(ownership);
 
+        bookingConfigRepository.save(defaultBookingConfig(tenant, now));
+
         return toResponse(tenant);
+    }
+
+    /**
+     * Configuracao inicial de reservas da academia.
+     *
+     * Sem esta linha, /my/bookings, /classes/calendar e /admin/booking-config
+     * respondem erro para a academia recem-criada: o BookingConfigService espera
+     * uma configuracao por tenant e nao inventa uma. Os valores repetem os
+     * padroes que o schema ja usava.
+     */
+    private BookingConfig defaultBookingConfig(Tenant tenant, Instant now) {
+        return BookingConfig.builder()
+                .tenant(tenant)
+                .publishDaysBeforeMonth(15)
+                .businessDays("MON-SAT")
+                .businessStart(LocalTime.of(8, 0))
+                .businessEnd(LocalTime.of(18, 0))
+                .cancelCutoffHours(0)
+                .onePerDayPerType(true)
+                .waitlistEnabled(true)
+                .waitlistPromotionHours(2)
+                .updatedAt(now)
+                .build();
     }
 
     /** Returns the currently resolved tenant's details. */

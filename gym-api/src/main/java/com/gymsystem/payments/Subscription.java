@@ -22,6 +22,18 @@ public class Subscription {
     @JoinColumn(name = "tenant_id", nullable = false)
     private Tenant tenant;
 
+    /**
+     * Plano do catalogo que originou a assinatura. Nulo nas assinaturas antigas,
+     * de quando o plano era texto livre vindo do cliente.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "plan_id")
+    private com.gymsystem.payments.plan.MembershipPlan plan;
+
+    /**
+     * Nome e preco ficam copiados aqui de proposito: se a academia reajustar o
+     * plano depois, o historico desta assinatura nao muda.
+     */
     @Column(name = "plan_name",  nullable = false, length = 64) private String planName;
     @Column(name = "price_cents", nullable = false)             private long priceCents;
     @Column(nullable = false, length = 8)                       private String currency;

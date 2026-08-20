@@ -1,6 +1,7 @@
 package com.gymsystem.payments.gateway;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.gymsystem.payments.webhook.HmacVerifier;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -9,12 +10,9 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Base64;
-import java.util.HexFormat;
 import java.util.Map;
 
 /**
@@ -171,11 +169,7 @@ public class PagarmeGateway implements PaymentGateway {
             if (signature == null) return false;
             if (signature.startsWith("sha256=")) signature = signature.substring(7);
 
-            Mac mac = Mac.getInstance("HmacSHA256");
-            mac.init(new SecretKeySpec(webhookSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
-            String computed = HexFormat.of().formatHex(mac.doFinal(rawBody));
-
-            return computed.equalsIgnoreCase(signature);
+            return HmacVerifier.matchesHex(webhookSecret, rawBody, signature);
         } catch (Exception e) {
             log.error("[Pagarme] Webhook verification failed: {}", e.getMessage());
             return false;

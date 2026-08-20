@@ -15,6 +15,9 @@ target/
 .vscode/
 *.iml
 .claude/
+.classpath
+.project
+.settings/
 
 # Logs
 *.log

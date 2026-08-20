@@ -14,6 +14,7 @@ import com.gymsystem.user.UserRepository;
 import com.gymsystem.user.UserRole;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -83,6 +85,15 @@ public class AuthService {
 
     // ── private ──────────────────────────────────────────────
 
+    /**
+     * Monta o JWT com o papel global e, quando o usuario realmente pertence a
+     * academia da requisicao, tambem o papel dentro dela.
+     *
+     * O tenant so entra no token se houver vinculo ativo (ou se o usuario for
+     * admin da plataforma, que atende qualquer academia). Antes bastava mandar
+     * um X-Tenant-ID qualquer no login para receber um token carimbado com a
+     * academia alheia.
+     */
     private String buildToken(User user) {
         Long   tenantId   = TenantContext.getTenantId();
         String tenantSlug = TenantContext.getTenantSlug();
@@ -92,8 +103,16 @@ public class AuthService {
                     .findByTenantIdAndUserIdAndActiveTrue(tenantId, user.getId())
                     .map(tu -> tu.getRole().name())
                     .orElse(null);
-            return jwtService.generateToken(
-                    user.getEmail(), user.getRole().name(), tenantSlug, tenantRole);
+
+            boolean platformAdmin = user.getRole() == UserRole.ADMIN_WEB
+                    || user.getRole() == UserRole.ADMIN_APP;
+
+            if (tenantRole != null || platformAdmin) {
+                return jwtService.generateToken(
+                        user.getEmail(), user.getRole().name(), tenantSlug, tenantRole);
+            }
+            log.warn("Login de {} pedindo a academia {} sem vinculo ativo - token sai sem tenant",
+                    user.getEmail(), tenantSlug);
         }
         return jwtService.generateToken(user.getEmail(), user.getRole().name());
     }

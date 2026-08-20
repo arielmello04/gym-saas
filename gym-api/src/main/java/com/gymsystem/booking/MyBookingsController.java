@@ -3,6 +3,7 @@ package com.gymsystem.booking;
 
 import com.gymsystem.booking.dto.MyBookingItem;
 import com.gymsystem.booking.config.BookingConfigService;
+import com.gymsystem.tenant.context.TenantGuard;
 import com.gymsystem.user.User;
 import com.gymsystem.user.UserRepository;
 import io.swagger.v3.oas.annotations.Operation;
@@ -37,7 +38,8 @@ public class MyBookingsController {
     @GetMapping
     public ResponseEntity<List<MyBookingItem>> list(@RequestParam(name = "scope", defaultValue = "upcoming") String scope) {
         User me = currentUser();
-        var rows = bookingRepository.findAllByUserIdWithSession(me.getId());
+        Long tenantId = TenantGuard.currentTenantId();
+        var rows = bookingRepository.findAllByUserIdWithSession(me.getId(), tenantId);
         var now = Instant.now();
         int cutoff = Math.max(0, bookingConfigService.get().getCancelCutoffHours());
 

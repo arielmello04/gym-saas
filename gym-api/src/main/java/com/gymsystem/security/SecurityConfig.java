@@ -50,6 +50,9 @@ public class SecurityConfig {
                     "/api/v1/checkin/callback"
                 ).permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/payments/callback/**").permitAll()
+                // Webhook da TotalPass: eles chamam sem credencial nossa. A URL
+                // carrega academia e segredo, conferidos no controller.
+                .requestMatchers(HttpMethod.POST, "/api/v1/checkin/webhook/**").permitAll()
                 .requestMatchers(HttpMethod.GET,
                     "/api/v1/classes/types",
                     "/api/v1/classes/calendar",

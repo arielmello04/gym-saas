@@ -2,6 +2,7 @@
 package com.gymsystem.documents;
 
 import com.gymsystem.documents.dto.UploadResponse;
+import com.gymsystem.documents.dto.UserDocumentResponse;
 import com.gymsystem.user.UserRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -32,7 +33,7 @@ public class DocumentController {
 
     @Operation(summary = "List my documents")
     @GetMapping
-    public ResponseEntity<List<UserDocument>> listMy() {
+    public ResponseEntity<List<UserDocumentResponse>> listMy() {
         return ResponseEntity.ok(service.myDocuments());
     }
 
@@ -42,13 +43,13 @@ public class DocumentController {
             @RequestPart("title") @NotBlank String title,
             @RequestPart("category") @NotBlank String category,
             @RequestPart("file") MultipartFile file
-    ) throws Exception {
+    ) {
         return ResponseEntity.ok(service.uploadMy(title, category, file));
     }
 
     @Operation(summary = "Delete one of my documents")
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) throws Exception {
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
         service.deleteMy(id);
         return ResponseEntity.noContent().build();
     }

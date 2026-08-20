@@ -1,6 +1,8 @@
 package com.gymsystem.user;
 
 import com.gymsystem.payments.SubscriptionRepository;
+import com.gymsystem.payments.SubscriptionStatus;
+import com.gymsystem.tenant.context.TenantGuard;
 import com.gymsystem.user.dto.MeResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -27,11 +29,11 @@ public class MeController {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User u = userRepository.findByEmail(email).orElseThrow(() -> new IllegalStateException("Authenticated user not found: " + email));
 
-        // Check for active or past-due subscription
-        var sub = subscriptionRepository.findByUserIdAndStatusIn(u.getId(), Set.of(
-                com.gymsystem.payments.SubscriptionStatus.ACTIVE,
-                com.gymsystem.payments.SubscriptionStatus.PAST_DUE
-        ));
+        // Assinatura da academia DESTA requisicao. Buscar so por usuario fazia
+        // um aluno de duas academias ver aqui a assinatura da outra.
+        Long tenantId = TenantGuard.currentTenantId();
+        var sub = subscriptionRepository.findByUserIdAndTenantIdAndStatusIn(
+                u.getId(), tenantId, Set.of(SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE));
 
         boolean hasSub = sub.isPresent();
         String status = hasSub ? sub.get().getStatus().name() : null;

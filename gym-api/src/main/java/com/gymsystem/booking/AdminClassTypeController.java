@@ -1,9 +1,10 @@
 package com.gymsystem.booking;
 
+import com.gymsystem.booking.dto.ClassTypeResponse;
 import com.gymsystem.booking.dto.CreateClassTypeRequest;
 import com.gymsystem.booking.dto.UpdateClassTypeRequest;
 import com.gymsystem.tenant.TenantRepository;
-import com.gymsystem.tenant.context.TenantContext;
+import com.gymsystem.tenant.context.TenantGuard;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -26,16 +27,14 @@ public class AdminClassTypeController {
 
     @Operation(summary = "Create a new class type")
     @PostMapping
-    public ResponseEntity<ClassType> create(@Valid @RequestBody CreateClassTypeRequest req) {
+    public ResponseEntity<ClassTypeResponse> create(@Valid @RequestBody CreateClassTypeRequest req) {
         String code = req.getCode().trim().toUpperCase();
-
-        Long tenantId = TenantContext.getTenantId();
-        if (tenantId == null) throw new IllegalStateException("Tenant context not set");
+        Long tenantId = TenantGuard.currentTenantId();
 
         var tenant = tenantRepository.findById(tenantId)
                 .orElseThrow(() -> new IllegalArgumentException("Tenant not found"));
 
-        if (repo.findByCodeAndActiveTrueAndTenantId(code, tenantId).isPresent()) {
+        if (repo.existsByCodeAndTenantId(code, tenantId)) {
             throw new IllegalArgumentException("Class type code already exists: " + code);
         }
 
@@ -47,25 +46,34 @@ public class AdminClassTypeController {
                 .tenant(tenant)
                 .build();
 
-        return ResponseEntity.ok(repo.save(ct));
+        return ResponseEntity.ok(ClassTypeResponse.from(repo.save(ct)));
     }
 
     @Operation(summary = "List all active class types for the current tenant")
     @GetMapping
-    public ResponseEntity<List<ClassType>> listAll() {
-        Long tenantId = TenantContext.getTenantId();
-        if (tenantId == null) return ResponseEntity.ok(repo.findAll());
-        return ResponseEntity.ok(repo.findByTenantIdAndActiveTrue(tenantId));
+    public ResponseEntity<List<ClassTypeResponse>> listAll() {
+        Long tenantId = TenantGuard.currentTenantId();
+        return ResponseEntity.ok(
+                repo.findByTenantIdAndActiveTrue(tenantId).stream()
+                        .map(ClassTypeResponse::from)
+                        .toList()
+        );
     }
 
     @Operation(summary = "Update an existing class type")
     @PutMapping("/{id}")
-    public ResponseEntity<ClassType> update(@PathVariable Long id,
-                                            @Valid @RequestBody UpdateClassTypeRequest req) {
-        ClassType ct = repo.findById(id).orElseThrow(() -> new IllegalArgumentException("Class type not found"));
+    public ResponseEntity<ClassTypeResponse> update(@PathVariable Long id,
+                                                    @Valid @RequestBody UpdateClassTypeRequest req) {
+        Long tenantId = TenantGuard.currentTenantId();
+
+        // Busca escopada por tenant: com findById puro, o admin de uma academia
+        // editava o tipo de aula de outra so acertando o id.
+        ClassType ct = repo.findByIdAndTenantId(id, tenantId)
+                .orElseThrow(() -> new IllegalArgumentException("Class type not found"));
+
         if (req.getName() != null) ct.setName(req.getName());
         if (req.getDescription() != null) ct.setDescription(req.getDescription());
         if (req.getActive() != null) ct.setActive(req.getActive());
-        return ResponseEntity.ok(repo.save(ct));
+        return ResponseEntity.ok(ClassTypeResponse.from(repo.save(ct)));
     }
 }

@@ -10,9 +10,14 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Consultas de reserva.
+ *
+ * TODAS recebem tenantId e filtram por b.tenant.id. Nao adicione sobrecarga sem
+ * tenant: ja existiu uma e o /api/v1/my/bookings acabou listando as reservas de
+ * todas as academias do usuario.
+ */
 public interface BookingRepository extends JpaRepository<Booking, Long> {
-
-    // ── Usado por BookingService (com tenantId) ───────────────
 
     @Query("""
         SELECT COUNT(b) FROM Booking b
@@ -62,27 +67,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("dayStart")    Instant dayStart,
             @Param("dayEnd")      Instant dayEnd);
 
-    // ── Usado por WaitlistService (sem tenantId) ──────────────
-
-    @Query("""
-        SELECT COUNT(b) FROM Booking b
-        WHERE b.session.id = :sessionId
-          AND b.status     = com.gymsystem.booking.BookingStatus.BOOKED
-    """)
-    long countActiveBySessionId(@Param("sessionId") Long sessionId);
-
-    // ── Usado por MyBookingsController (sem tenantId) ─────────
-
-    @Query("""
-        SELECT b FROM Booking b
-          JOIN FETCH b.session s
-          JOIN FETCH s.classType
-        WHERE b.user.id = :userId
-        ORDER BY s.startAt DESC
-    """)
-    List<Booking> findAllByUserIdWithSession(@Param("userId") Long userId);
-
-    // ── Usado por BookingService (com tenantId) ───────────────
+    // ── Usado por BookingService e MyBookingsController ──────
 
     @Query("""
         SELECT b FROM Booking b

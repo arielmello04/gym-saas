@@ -1,92 +1,144 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
-
-interface WaitlistEntry { entryId: number; sessionId: number; sessionType: string; sessionStartAt: string; position: number; status: string; notifiedAt?: string; expiresAt?: string; totalWaiting: number; }
+import { RouterLink } from '@angular/router';
+import { WaitlistApiService } from '../../../core/services/api.service';
+import { ToastService } from '../../../core/services/toast.service';
+import { WaitlistEntry } from '../../../core/models';
+import { IconComponent } from '../../../shared/icon.component';
 
 @Component({
   selector: 'app-waitlist',
   standalone: true,
-  imports: [DatePipe],
+  imports: [DatePipe, RouterLink, IconComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="page-header"><h1>⏳ Fila de Espera</h1></div>
+    <div class="page-header">
+      <div class="page-title">
+        <h1>Fila de espera</h1>
+        <span class="page-subtitle">Aulas lotadas em que você está aguardando vaga.</span>
+      </div>
+    </div>
 
     @if (loading()) {
-      <div style="display:flex;justify-content:center;padding:48px"><div class="spinner"></div></div>
+      <div class="rows">
+        @for (i of [1,2]; track i) { <div class="skeleton" style="height:110px"></div> }
+      </div>
     } @else if (entries().length === 0) {
       <div class="empty-state">
-        <div class="icon">🎉</div><h3>Nenhuma fila de espera</h3>
-        <p>Você não está em nenhuma fila no momento.</p>
+        <div class="icon"><app-icon name="clock" [size]="40" [stroke]="1.4" /></div>
+        <h3>Você não está em nenhuma fila</h3>
+        <p>Quando uma aula estiver lotada, entre na fila pela agenda e avisamos assim que abrir vaga.</p>
+        <a routerLink="/dashboard" class="btn btn-primary">Ver agenda</a>
       </div>
     } @else {
-      <div class="entries-list">
+      <div class="stack">
         @for (e of entries(); track e.entryId) {
-          <div class="entry-card card" [class.promoted]="e.status === 'PROMOTED'">
+          <article class="entry enter" [class.promoted]="e.status === 'PROMOTED'">
             @if (e.status === 'PROMOTED') {
-              <div class="promoted-banner">
-                🎉 Vaga disponível! Confirme antes de {{ e.expiresAt | date:'dd/MM HH:mm' }}
+              <div class="call">
+                <app-icon name="check" [size]="17" />
+                <span>Vaga liberada. Confirme até {{ e.expiresAt | date:'dd/MM HH:mm' }} ou ela passa para o próximo.</span>
               </div>
             }
-            <div class="entry-header">
-              <span class="class-name">{{ e.sessionType }}</span>
-              <span class="badge" [class]="statusBadge(e.status)">
-                @if (e.status === 'WAITING') { #{{ e.position }} de {{ e.totalWaiting }} }
-                @else { {{ e.status }} }
-              </span>
-            </div>
-            <p class="entry-date">{{ e.sessionStartAt | date:'EEE dd/MM HH:mm' }}</p>
-            <div class="entry-actions">
-              @if (e.status === 'PROMOTED') {
-                <button class="btn btn-primary btn-sm" [disabled]="pending() === e.sessionId" (click)="confirm(e)">✅ Confirmar vaga</button>
+
+            <div class="spread">
+              <div class="row-main">
+                <span class="row-title">{{ e.sessionType }}</span>
+                <span class="row-sub nums">{{ e.sessionStartAt | date:'EEEE, dd/MM · HH:mm' }}</span>
+              </div>
+              @if (e.status === 'WAITING') {
+                <div class="pos">
+                  <span class="pos-value nums">{{ e.position }}º</span>
+                  <span class="pos-label nums">de {{ e.totalWaiting }}</span>
+                </div>
+              } @else {
+                <span class="badge" [class]="badgeClass(e.status)">{{ statusLabel(e.status) }}</span>
               }
-              <button class="btn btn-secondary btn-sm" [disabled]="pending() === e.sessionId" (click)="leave(e)">Sair da fila</button>
             </div>
-          </div>
+
+            <div class="inline actions">
+              @if (e.status === 'PROMOTED') {
+                <button class="btn btn-primary btn-sm" [disabled]="pending() === e.sessionId" (click)="confirm(e)">
+                  @if (pending() === e.sessionId) { <span class="spinner spinner-sm"></span> }
+                  Confirmar vaga
+                </button>
+              }
+              <button class="btn btn-ghost btn-sm" [disabled]="pending() === e.sessionId" (click)="leave(e)">
+                Sair da fila
+              </button>
+            </div>
+          </article>
         }
       </div>
     }
   `,
   styles: [`
-    .entries-list { display:flex; flex-direction:column; gap:12px; }
-    .entry-card { padding:16px; &.promoted{border:2px solid var(--color-success);}
-      .promoted-banner { background:#dcfce7; color:#166534; padding:8px 12px; border-radius:6px; font-size:13px; font-weight:600; margin-bottom:12px; }
-      .entry-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; .class-name{font-weight:600;} }
-      .entry-date { font-size:13px; color:var(--color-text-muted); margin:0 0 12px; }
-      .entry-actions { display:flex; gap:8px; }
-    }
+    .entry { display: flex; flex-direction: column; gap: 14px; padding: 18px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); }
+    .entry.promoted { border-color: var(--success); }
+    .call { display: flex; align-items: center; gap: 9px; padding: 10px 12px; background: var(--success-soft); color: var(--success); border-radius: var(--r-sm); font-size: 13px; font-weight: 600; }
+    .row-sub { text-transform: capitalize; }
+    .pos { display: flex; flex-direction: column; align-items: flex-end; }
+    .pos-value { font-size: 26px; font-weight: 800; letter-spacing: -.04em; line-height: 1; color: var(--accent); }
+    .pos-label { font-size: 12px; color: var(--text-dim); }
+    .actions { justify-content: flex-end; }
   `],
 })
 export class WaitlistComponent implements OnInit {
+  private api = inject(WaitlistApiService);
+  private toast = inject(ToastService);
+
   entries = signal<WaitlistEntry[]>([]);
   loading = signal(true);
   pending = signal<number | null>(null);
 
-  constructor(private http: HttpClient) {}
   ngOnInit() { this.load(); }
+
+  statusLabel(s: string) {
+    return s === 'PROMOTED' ? 'Vaga liberada' : s === 'EXPIRED' ? 'Prazo vencido' : s === 'CANCELED' ? 'Saiu da fila' : s;
+  }
+  badgeClass(s: string) {
+    return s === 'PROMOTED' ? 'badge-success' : s === 'EXPIRED' ? 'badge-warning' : 'badge-neutral';
+  }
 
   confirm(e: WaitlistEntry) {
     this.pending.set(e.sessionId);
-    this.http.post<unknown>(`/api/v1/waitlist/${e.sessionId}/confirm`, {}).subscribe({
-      next:  () => { this.pending.set(null); this.load(); },
-      error: () => this.pending.set(null),
+    this.api.confirm(e.sessionId).subscribe({
+      next: () => {
+        this.pending.set(null);
+        this.toast.success(`Vaga confirmada em ${e.sessionType}.`);
+        this.load();
+      },
+      error: err => {
+        this.pending.set(null);
+        this.toast.fromApi(err, 'Não foi possível confirmar a vaga.');
+        this.load();
+      },
     });
   }
 
   leave(e: WaitlistEntry) {
     this.pending.set(e.sessionId);
-    this.http.delete(`/api/v1/waitlist/${e.sessionId}/leave`).subscribe({
-      next:  () => { this.pending.set(null); this.load(); },
-      error: () => this.pending.set(null),
+    this.api.leave(e.sessionId).subscribe({
+      next: () => {
+        this.pending.set(null);
+        this.toast.info('Você saiu da fila.');
+        this.load();
+      },
+      error: err => {
+        this.pending.set(null);
+        this.toast.fromApi(err, 'Não foi possível sair da fila.');
+      },
     });
   }
 
-  statusBadge(s: string) { return s === 'WAITING' ? 'badge badge-info' : s === 'PROMOTED' ? 'badge badge-success' : 'badge badge-neutral'; }
-
   private load() {
     this.loading.set(true);
-    this.http.get<WaitlistEntry[]>('/api/v1/waitlist/me').subscribe({
-      next:  (e) => { this.entries.set(e); this.loading.set(false); },
-      error: () => this.loading.set(false),
+    this.api.myEntries().subscribe({
+      next: e => { this.entries.set(e); this.loading.set(false); },
+      error: e => {
+        this.loading.set(false);
+        this.toast.fromApi(e, 'Não foi possível carregar suas filas.');
+      },
     });
   }
 }

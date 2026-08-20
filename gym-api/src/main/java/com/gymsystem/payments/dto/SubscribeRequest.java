@@ -4,17 +4,19 @@ import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
 
+/**
+ * Pedido de assinatura.
+ *
+ * Só o plano e a forma de pagamento vêm do cliente. Nome, preço e moeda saem do
+ * catálogo da academia (membership_plans): antes esses três campos chegavam no
+ * corpo da requisição e eram cobrados como vieram, o que permitia assinar
+ * qualquer plano por R$ 1,00.
+ */
 @Getter @Setter
 public class SubscribeRequest {
 
-    @NotBlank
-    private String planName;
-
-    @Min(100)
-    private long priceCents;
-
-    @NotBlank
-    private String currency;
+    @NotNull
+    private Long planId;
 
     /** pix | boleto | credit_card */
     @NotBlank

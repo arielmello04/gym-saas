@@ -80,6 +80,18 @@ export const routes: Routes = [
                 .then(m => m.MembersComponent),
           },
           {
+            path: 'plans',
+            loadComponent: () =>
+              import('./features/admin/plans/admin-plans.component')
+                .then(m => m.AdminPlansComponent),
+          },
+          {
+            path: 'partners',
+            loadComponent: () =>
+              import('./features/admin/partners/admin-partners.component')
+                .then(m => m.AdminPartnersComponent),
+          },
+          {
             path: 'payments',
             loadComponent: () =>
               import('./features/admin/payments/admin-payments.component')
